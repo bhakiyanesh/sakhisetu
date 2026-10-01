@@ -378,6 +378,13 @@ export type ResourceMatch = {
   reason: 'eshram' | 'keyword' | 'none'
 }
 
+const contextualLearningKeywords: Record<LanguageCode, string[]> = {
+  ta: ['கற்றுக்கொள்ள', 'கற்றுக்கொண்டு சம்பாதிக்க', 'வீட்டிலிருந்து கற்க'],
+  te: ['నేర్చుకోవాలి', 'నేర్చుకొని సంపాదించు', 'ఇంటి నుంచి నేర్చుకో'],
+  hi: ['सीखकर कमाना', 'घर से सीखना', 'सीखना और कमाना'],
+  en: ['learn from home', 'learn and earn', 'work and learn', 'upskill from home'],
+}
+
 export function matchResources(userText: string, language: LanguageCode): ResourceMatch {
   const normalized = userText.toLocaleLowerCase(language)
   const eshram = resources.find((resource) => resource.id === 'eshram-resource')
@@ -386,7 +393,10 @@ export function matchResources(userText: string, language: LanguageCode): Resour
   }
 
   const categoryScores = resourceCategories.map((category) => {
-    const categoryMatches = category.keywords[language].reduce(
+    const keywords = category.id === 'learning'
+      ? [...category.keywords[language], ...contextualLearningKeywords[language]]
+      : category.keywords[language]
+    const categoryMatches = keywords.reduce(
       (score, keyword) => score + (normalized.includes(keyword.toLocaleLowerCase(language)) ? keyword.length : 0),
       0,
     )

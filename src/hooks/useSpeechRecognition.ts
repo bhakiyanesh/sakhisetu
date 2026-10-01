@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { LanguageCode } from '../data/services'
 
 export type VoiceStatus = 'idle' | 'listening' | 'understanding' | 'finding' | 'found'
@@ -33,7 +33,7 @@ const speechLanguage: Record<LanguageCode, string> = {
 
 export function useSpeechRecognition(
   language: LanguageCode,
-  onTranscript: (transcript: string) => void,
+  onTranscript: (transcript: string) => void | Promise<void>,
 ) {
   const [status, setStatus] = useState<VoiceStatus>('idle')
   const [showTypingFallback, setShowTypingFallback] = useState(false)
@@ -41,9 +41,12 @@ export function useSpeechRecognition(
   const transcriptHandlerRef = useRef(onTranscript)
   const finalResultRef = useRef(false)
 
-  transcriptHandlerRef.current = onTranscript
+  useEffect(() => {
+    transcriptHandlerRef.current = onTranscript
+  }, [onTranscript])
 
   function startListening() {
+    if (recognitionRef.current) return
     setShowTypingFallback(false)
     finalResultRef.current = false
 
@@ -72,22 +75,32 @@ export function useSpeechRecognition(
           .join(' ')
           .trim()
         if (!transcript) {
+          recognitionRef.current = null
           setStatus('idle')
           setShowTypingFallback(true)
           document.getElementById('resource-query')?.focus()
           return
         }
         finalResultRef.current = true
+        recognitionRef.current = null
         setStatus('understanding')
-        transcriptHandlerRef.current(transcript)
+        void Promise.resolve(transcriptHandlerRef.current(transcript))
+          .then(() => setStatus('found'))
+          .catch(() => {
+            setStatus('idle')
+            setShowTypingFallback(true)
+            document.getElementById('resource-query')?.focus()
+          })
       }
       recognition.onerror = () => {
+        recognitionRef.current = null
         finalResultRef.current = true
         setStatus('idle')
         setShowTypingFallback(true)
         document.getElementById('resource-query')?.focus()
       }
       recognition.onend = () => {
+        recognitionRef.current = null
         if (!finalResultRef.current) {
           setStatus('idle')
           setShowTypingFallback(true)
@@ -112,6 +125,17 @@ export function useSpeechRecognition(
     setStatus('found')
   }
 
+  function toggleListening() {
+    if (!recognitionRef.current) {
+      startListening()
+      return
+    }
+    finalResultRef.current = true
+    recognitionRef.current.stop()
+    recognitionRef.current = null
+    setStatus('idle')
+  }
+
   function resetVoiceState() {
     recognitionRef.current?.stop()
     recognitionRef.current = null
@@ -120,5 +144,5 @@ export function useSpeechRecognition(
     setShowTypingFallback(false)
   }
 
-  return { status, showTypingFallback, startListening, setFinding, setFound, resetVoiceState }
+  return { status, showTypingFallback, startListening, toggleListening, setFinding, setFound, resetVoiceState }
 }

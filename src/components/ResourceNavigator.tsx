@@ -21,6 +21,7 @@ type ResourceNavigatorProps = {
   voiceStatus: VoiceStatus
   showTypingFallback: boolean
   response: LocalizedText | null
+  isSearching: boolean
   onSelectCategory(category: ResourceCategoryId): void
   onSearch(query: string): void
   onSpeak(): void
@@ -38,6 +39,7 @@ export function ResourceNavigator({
   voiceStatus,
   showTypingFallback,
   response,
+  isSearching,
   onSelectCategory,
   onSearch,
   onSpeak,
@@ -67,10 +69,10 @@ export function ResourceNavigator({
       </div>
 
       <div className="navigator-mode-row" aria-label={resourceUiLabels.question[language]}>
-        <button className="navigator-mode is-selected" onClick={onSpeak} type="button">
+        <button aria-label={resourceUiLabels.voiceTap[language]} aria-pressed={voiceStatus === 'listening'} className="navigator-mode is-selected" disabled={isSearching} onClick={onSpeak} type="button">
           {resourceUiLabels.voiceTap[language]}
         </button>
-        <span className="navigator-mode-separator">{resourceUiLabels.or[language]}</span>
+        <span className="navigator-mode-separator">{{ ta: 'அல்லது', te: 'లేదా', hi: 'या', en: 'or' }[language]}</span>
         <span className="navigator-mode type-mode">{resourceUiLabels.type[language]}</span>
       </div>
 
@@ -80,26 +82,27 @@ export function ResourceNavigator({
         </p>
       )}
 
-      {showTypingFallback && <p className="voice-fallback">{resourceUiLabels.typeFallback[language]}</p>}
+      {showTypingFallback && <p aria-live="polite" className="voice-fallback">{resourceUiLabels.typeFallback[language]}</p>}
 
       <form className="navigator-search" onSubmit={submitSearch}>
         <label className="sr-only" htmlFor="resource-query">{resourceUiLabels.searchPlaceholder[language]}</label>
         <textarea
           id="resource-query"
+          disabled={isSearching}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={resourceUiLabels.searchPlaceholder[language]}
           rows={2}
           value={draft}
         />
-        <button className="navigator-search-button" disabled={!draft.trim()} type="submit">
-          {resourceUiLabels.search[language]}
+        <button aria-busy={isSearching} className="navigator-search-button" disabled={isSearching || !draft.trim()} type="submit">
+          {isSearching ? resourceUiLabels.voiceUnderstanding[language] : resourceUiLabels.search[language]}
         </button>
       </form>
 
       <div className="voice-examples">
         <span>{resourceUiLabels.examplesLabel[language]}</span>
         {voiceExamples.map((example, index) => (
-          <button key={index} onClick={() => { setDraft(example[language]); onSearch(example[language]) }} type="button">
+          <button disabled={isSearching} key={index} onClick={() => { setDraft(example[language]); onSearch(example[language]) }} type="button">
             {example[language]}
           </button>
         ))}
@@ -132,7 +135,7 @@ export function ResourceNavigator({
           )}
           {visibleResources.length === 0 ? (
             <div className="navigator-empty-state">
-              <p>{resourceUiLabels.noResults[language]}</p>
+              {!response && <p>{resourceUiLabels.noResults[language]}</p>}
               <button className="navigator-back" onClick={goBack} type="button">
                 {resourceUiLabels.categoriesBack[language]}
               </button>

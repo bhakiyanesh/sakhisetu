@@ -7,6 +7,7 @@ import {
   type ResourceCategoryId,
 } from '../data/resources'
 import type { LanguageCode, LocalizedText } from '../data/services'
+import { containsSensitiveInformation, getPrivacyWarning } from './privacyGuard'
 
 export type IntentProvider = (
   message: string,
@@ -17,17 +18,21 @@ export interface OrchestratorResult {
   category: ResourceCategoryId | null
   resources: Resource[]
   response: LocalizedText
-  reason: 'empty' | 'eshram' | 'keyword' | 'provider' | 'unclear' | 'provider-fallback'
+  reason: 'empty' | 'sensitive' | 'eshram' | 'keyword' | 'provider' | 'unclear' | 'provider-fallback'
 }
 
 export async function orchestrateResourceRequest(
   message: string,
   language: LanguageCode,
   intentProvider?: IntentProvider,
+  onFinding?: () => void,
 ): Promise<OrchestratorResult> {
   const query = message.trim()
   if (!query) {
     return { category: null, resources: [], response: resourceUiLabels.emptyInput, reason: 'empty' }
+  }
+  if (containsSensitiveInformation(query)) {
+    return { category: null, resources: [], response: getPrivacyWarning(), reason: 'sensitive' }
   }
 
   const deterministicMatch = matchResources(query, language)
@@ -41,9 +46,10 @@ export async function orchestrateResourceRequest(
   }
 
   if (intentProvider) {
+    onFinding?.()
     try {
       const detectedCategory = await intentProvider(query, language)
-      if (detectedCategory) {
+      if (detectedCategory && resourceCategories.some((item) => item.id === detectedCategory)) {
         const category = resourceCategories.find((item) => item.id === detectedCategory)
         return {
           category: detectedCategory,

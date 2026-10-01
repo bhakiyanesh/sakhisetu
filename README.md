@@ -1,75 +1,49 @@
-# React + TypeScript + Vite
+# SakhiSetu
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SakhiSetu helps women find and understand trusted public services through a simple multilingual resource navigator and guided e-Shram workflow. People can browse seven everyday needs: Money & Benefits, Jobs & Employment, Learning & Skills, Women Support, Business & Self-Employment, Safety & Support, and Government Services.
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- One shared flow rendered in Tamil, Telugu, Hindi, and English.
+- Voice input with language-aware recognition and a typing fallback.
+- Local intent and resource matching, with optional Gemini intent classification.
+- Simple explanations, glossary help, read aloud, repeat, and step-by-step e-Shram guidance.
+- Curated official resource links and handoff to the official service for applications.
+- Sensitive identifiers are blocked before intent requests; SakhiSetu does not store user messages.
 
-## React Compiler
+Gemini can suggest a category only. The app validates that category against the local resource catalog and never accepts URLs or actions from the model. If Gemini is missing or unavailable, local matching remains usable.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Run locally
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+The Vite development server supports the local resource fallback. Vercel's `/api/intent` function is used for Gemini in deployments.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Environment
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Variable | Where | Purpose |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | Vercel server environment | Server-only Gemini credential; never prefix with `VITE_` |
+| `VITE_GEMINI_ENABLED` | Vercel build environment | Set to `true` to enable the same-origin intent function |
 
+Without these variables, the application uses deterministic local intent matching. Never commit `.env` files or secrets.
+
+## Build and deployment
+
+```sh
+npm run build
+npm run preview
 ```
+
+Vite writes the static app to `dist/`. Vercel can build this repository with `npm run build` and serve `dist/`; its Node function in `api/intent.js` provides optional Gemini intent classification. Set the two environment variables above in the Vercel project settings. Test the deployment without a Gemini key first to confirm local fallback remains available.
+
+## Technology
+
+React, TypeScript, Vite, CSS, Web Speech APIs, and an optional Vercel serverless function for Gemini. Curated resource data and the e-Shram workflow remain in the client so core browsing does not depend on network access.
+
+## Future work
+
+The current architecture leaves room for assisted website reading, translation, page simplification, and vision features. These are not enabled in this prototype; official application steps remain on the linked government websites.
